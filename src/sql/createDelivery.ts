@@ -1,5 +1,5 @@
 const CreateDeliveryAgentTable = `
-CREATE TABLE IF NOT EXISTS delivery_agent (
+CREATE TABLE IF NOT EXISTS delivery_agents (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   phone_one VARCHAR(15) UNIQUE NOT NULL,
