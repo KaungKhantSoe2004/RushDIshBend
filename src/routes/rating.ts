@@ -1,5 +1,4 @@
 import express, { Router, Request, Response } from "express";
-import ReportController from "../controllers/reportController";
 import RatingController from "../controllers/ratingController";
 const RatingRouter: Router = express.Router();
 

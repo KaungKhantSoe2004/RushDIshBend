@@ -6,6 +6,7 @@ const CreateUsersTable = `CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100),
   address_one TEXT,
   address_two TEXT,
+  role VARCHAR(20) DEFAULT 'user',
   account_status VARCHAR(20) DEFAULT 'active',
   points INTEGER DEFAULT 0,
   login_code VARCHAR(10),
