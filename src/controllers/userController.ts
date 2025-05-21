@@ -3,10 +3,7 @@ import pgPool from "../db";
 import getToken from "../helpers/createToken";
 const bcrypt = require("bcryptjs");
 const UserController = {
-  index: async (req: Request, res: Response): Promise<void> => {
-    console.log("UserController index");
-  },
-  adminLogin: async (req: Request, res: Response): Promise<void> => {
+  userLogin: async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
     if (!email || !password) {
       res.status(400).json({
@@ -25,8 +22,9 @@ const UserController = {
             if (result.rows.length > 0) {
               const user = result.rows[0];
               const hashedPassword = user.password;
-              if (bcrypt.compareSync(password, hashedPassword)) {
-                const token = getToken(user.id, user.role);
+              const pepperPassword = password + process.env.SECRET_PEPPER;
+              if (bcrypt.compareSync(pepperPassword, hashedPassword)) {
+                const token = getToken(user.id, user.role, "user");
                 res.cookie("jwt", token, {
                   httpOnly: true,
                   maxAge: 3 * 24 * 60 * 60 * 1000,

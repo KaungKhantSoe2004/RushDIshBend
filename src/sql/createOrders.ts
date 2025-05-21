@@ -17,6 +17,8 @@ status VARCHAR(30) DEFAULT 'pending'  CHECK (
 ),
 FOREIGN KEY (delivery_id) REFERENCES delivery_agent(id),
 FOREIGN KEY (user_id) REFERENCES users(id),
-FOREIGN KEY (store_id) REFERENCES stores(id)
+FOREIGN KEY (store_id) REFERENCES stores(id),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`;
 export default CreateOrdersTable;

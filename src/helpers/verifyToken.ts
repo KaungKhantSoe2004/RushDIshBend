@@ -1,7 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 const jwt = require("jsonwebtoken");
+
 const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
   const token = req.cookies.jwt;
+  console.log(token, "is token");
+  return;
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET, (err: any, decoded: any) => {
       if (err) {
@@ -9,9 +12,11 @@ const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
       } else {
         const userId = decoded.id;
         const userRole = decoded.role;
+        const auth = decoded.auth;
         (req as any).user = {
           id: userId,
           role: userRole,
+          auth: auth,
         };
         next();
       }
@@ -20,3 +25,4 @@ const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
     res.status(401).json({ message: "Unauthorized" });
   }
 };
+export default verifyToken;

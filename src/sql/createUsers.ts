@@ -11,6 +11,7 @@ const CreateUsersTable = `CREATE TABLE IF NOT EXISTS users (
   points INTEGER DEFAULT 0,
   login_code VARCHAR(10),
   password_hash VARCHAR(255) NOT NULL,
+  is_active VARCHAR(20) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

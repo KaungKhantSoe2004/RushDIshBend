@@ -18,7 +18,9 @@ const CreateStoresTable = `CREATE TABLE IF NOT EXISTS stores (
   FOREIGN KEY (promotion_one) REFERENCES promotions(id),
   FOREIGN KEY (promotion_two) REFERENCES promotions(id),
   FOREIGN KEY (promotion_three) REFERENCES promotions(id),
-  FOREIGN KEY (promotion_four) REFERENCES promotions(id)
+  FOREIGN KEY (promotion_four) REFERENCES promotions(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `;
 

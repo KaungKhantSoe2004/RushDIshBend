@@ -22,8 +22,9 @@ const DeliveryController = {
             if (result.rows.length > 0) {
               const user = result.rows[0];
               const hashedPassword = user.password;
-              if (bcrypt.compareSync(password, hashedPassword)) {
-                const token = getToken(user.id, user.role);
+              const pepperPassword = password + process.env.SECRET_PEPPER;
+              if (bcrypt.compareSync(pepperPassword, hashedPassword)) {
+                const token = getToken(user.id, user.role, "delivery");
                 res.cookie("jwt", token, {
                   httpOnly: true,
                   maxAge: 3 * 24 * 60 * 60 * 1000,

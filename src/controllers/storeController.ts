@@ -11,7 +11,7 @@ const StoreController = {
       });
     } else {
       await pgPool.query(
-        "SELECT * FROM stores WHERE email = $1 AND role = 'admin'",
+        "SELECT * FROM stores WHERE email = $1",
         [email],
         (err, result) => {
           if (err) {
@@ -22,8 +22,9 @@ const StoreController = {
             if (result.rows.length > 0) {
               const user = result.rows[0];
               const hashedPassword = user.password;
-              if (bcrypt.compareSync(password, hashedPassword)) {
-                const token = getToken(user.id, user.role);
+              const pepperPassword = password + process.env.SECRET_PEPPER;
+              if (bcrypt.compareSync(pepperPassword, hashedPassword)) {
+                const token = getToken(user.id, user.role, "store");
                 res.cookie("jwt", token, {
                   httpOnly: true,
                   maxAge: 3 * 24 * 60 * 60 * 1000,
