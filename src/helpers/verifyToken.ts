@@ -3,8 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
   const token = req.cookies.jwt;
-  console.log(token, "is token");
-  return;
+
   if (token) {
     jwt.verify(token, process.env.JWT_SECRET, (err: any, decoded: any) => {
       if (err) {
@@ -18,6 +17,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
           role: userRole,
           auth: auth,
         };
+
         next();
       }
     });

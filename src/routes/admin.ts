@@ -2,6 +2,7 @@ import express, { Router, Request, Response } from "express";
 import UserController from "../controllers/userController";
 import AdminController from "../controllers/adminController";
 import verifyToken from "../helpers/verifyToken";
+import { verify } from "crypto";
 
 const AdminRouter: Router = express.Router();
 

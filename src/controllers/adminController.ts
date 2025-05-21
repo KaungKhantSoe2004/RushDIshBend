@@ -5,36 +5,35 @@ const bcrypt = require("bcryptjs");
 const AdminController = {
   me: async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log(req.body);
       const {
         id: user_id,
         role: user_role,
         auth: user_auth,
       } = (req as any).user;
 
-      console.log(user_id, "is id");
+      console.log(user_id, user_role, user_auth, "is id");
 
-      if (user_role === "admin" && user_auth === "admin") {
-        const result = await pgPool.query("SELECT * FROM users WHERE id = $1", [
-          user_id,
-        ]);
+      // if (user_role === "admin" && user_auth === "admin") {
+      const result = await pgPool.query("SELECT * FROM users WHERE id = $1", [
+        user_id,
+      ]);
 
-        if (result.rows.length > 0) {
-          const user = result.rows[0];
-          res.status(200).json({
-            data: user,
-            message: "success",
-          });
-        } else {
-          res.status(404).json({
-            message: "User not found",
-          });
-        }
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        res.status(200).json({
+          data: user,
+          message: "success",
+        });
       } else {
-        res.status(401).json({
-          message: "Unauthorized",
+        res.status(404).json({
+          message: "User not found",
         });
       }
+      // } else {
+      //   res.status(401).json({
+      //     message: "Unauthorized",
+      //   });
+      // }
     } catch (error) {
       res.status(500).json({
         message: "Internal Server Error",
