@@ -15,7 +15,7 @@ promotion_id INTEGER DEFAULT NULL,
 status VARCHAR(30) DEFAULT 'pending'  CHECK (
   status IN ('pending', 'completed', 'cancelled', 'in_progress', 'on_the_way', 'delivered', 'returned')
 ),
-FOREIGN KEY (delivery_id) REFERENCES delivery_agent(id),
+FOREIGN KEY (delivery_id) REFERENCES delivery_agents(id),
 FOREIGN KEY (user_id) REFERENCES users(id),
 FOREIGN KEY (store_id) REFERENCES stores(id),
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

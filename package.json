@@ -7,7 +7,12 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "ts-node src/init.ts",
-    "seedAdmin": "ts-node src/seedAdmin.ts"
+    "seedAdmin": "ts-node src/seedAdmin.ts",
+    "seedUsers": "ts-node src/seeder/seedUser.ts",
+    "seedDelivery": "ts-node src/seeder/seedDelivery.ts",
+    "seedStores": "ts-node src/seeder/seedStores.ts",
+    "seedOrder": "ts-node src/seeder/seedOrder.ts",
+    "seedPromotion": "ts-node src/seeder/seedPromotion.ts"
   },
   "keywords": [],
   "author": "",
