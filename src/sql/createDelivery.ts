@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS delivery_agents (
   phone_two VARCHAR(15),
   email VARCHAR(100) UNIQUE NOT NULL,
   profile TEXT,
+  role VARCHAR(20) DEFAULT 'delivery_agent',
   vehicle_type VARCHAR(50) NOT NULL,
   vehicle_number VARCHAR(20) NOT NULL,
   current_latitude DECIMAL(9,6),

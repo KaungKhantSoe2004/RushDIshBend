@@ -15,7 +15,7 @@ const seedOrders = async () => {
     const promotions: Array<{ id: number }> | any = await pgPool.query(
       "SELECT id FROM promotions LIMIT 3"
     );
-
+    
     // If not enough data to seed orders, exit early
     if (users.rowCount < 3 || stores.rowCount < 3 || agents.rowCount < 3) {
       console.error("Not enough users, stores, or agents to seed orders.");

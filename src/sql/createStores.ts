@@ -8,6 +8,7 @@ const CreateStoresTable = `CREATE TABLE IF NOT EXISTS stores (
   address_two TEXT,
   account_status VARCHAR(20) DEFAULT 'active',
   profile TEXT,
+  role VARCHAR(20) DEFAULT 'store',
   promotion_one INTEGER,
   promotion_two INTEGER,
   promotion_three INTEGER,

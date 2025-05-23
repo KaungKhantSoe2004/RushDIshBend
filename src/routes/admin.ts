@@ -27,6 +27,9 @@ AdminRouter.get(
 AdminRouter.get("/me", verifyToken, async (req: Request, res: Response) => {
   await AdminController.me(req, res);
 });
+AdminRouter.get("/logout", verifyToken, async (req: Request, res: Response) => {
+  await AdminController.logout(req, res);
+});
 AdminRouter.get("/store", verifyToken, async (req: Request, res: Response) => {
   AdminController.adminStore(req, res);
 });

@@ -61,11 +61,15 @@ const AdminController = {
             } else {
               if (result.rows.length > 0) {
                 const user = result.rows[0];
-
+                pgPool.query(
+                  "UPDATE users SET is_active = 'true' WHERE id = $1",
+                  [user.id]
+                );
                 const hashedPassword: string = String(user.password_hash);
                 const pepperPassword = password + process.env.SECRET_PEPPER;
                 if (bcrypt.compareSync(pepperPassword, hashedPassword)) {
                   const token = getToken(user.id, user.role, "admin");
+
                   res.cookie("jwt", token, {
                     httpOnly: true,
                     maxAge: 3 * 24 * 60 * 60 * 1000,
@@ -97,15 +101,15 @@ const AdminController = {
   },
   adminDashboard: async (req: Request, res: Response): Promise<void> => {
     try {
-      const ordersTodayQuery = `
-        SELECT * FROM orders 
-        WHERE created_at::date = CURRENT_DATE 
-        ORDER BY created_at DESC 
-        LIMIT 10
-      `;
-
+      const recentOrdersQuery = `SELECT * FROM recent_orders  
+               ORDER BY created_at DESC  
+               LIMIT 5;
+                `;
+      const ordersTodayCountQuery = `SELECT COUNT(*) FROM recent_orders  
+               WHERE created_at::date = CURRENT_DATE  
+                `;
       const randomFiveStoresQuery = `
-        SELECT * FROM stores 
+        SELECT * FROM store_order_counts 
         ORDER BY RANDOM() 
         LIMIT 5
       `;
@@ -113,29 +117,41 @@ const AdminController = {
       const storeCountQuery = `SELECT COUNT(*) FROM stores`;
 
       const totalOrdersCountQuery = `SELECT COUNT(*) FROM orders`;
-
+      const activeUsersQuery = `SELECT * FROM users WHERE is_active = 'true'`;
       const [
-        ordersTodayResult,
+        recentOrders,
+        ordersTodayCount,
         randomStoresResult,
         storeCountResult,
         orderCountResult,
+        activeUsers,
       ] = await Promise.all([
-        pgPool.query(ordersTodayQuery),
+        pgPool.query(recentOrdersQuery),
+        pgPool.query(ordersTodayCountQuery),
         pgPool.query(randomFiveStoresQuery),
         pgPool.query(storeCountQuery),
         pgPool.query(totalOrdersCountQuery),
+        pgPool.query(activeUsersQuery),
       ]);
 
       res.status(200).json({
-        ordersToday: ordersTodayResult.rows,
+        recentOrders: recentOrders.rows,
+        todayOrdersCount: parseInt(ordersTodayCount.rows[0].count, 10),
         randomFiveStores: randomStoresResult.rows,
         storeCount: parseInt(storeCountResult.rows[0].count, 10),
         orderCount: parseInt(orderCountResult.rows[0].count, 10),
+        activeUsers: activeUsers.rows,
       });
     } catch (err) {
       console.error("Error in adminDashboard:", err);
       res.status(500).json({ message: "Server error" });
     }
+  },
+  logout: async (req: Request, res: Response): Promise<void> => {
+    res.clearCookie("jwt", {
+      httpOnly: true,
+    });
+    res.status(200).json({ message: "logged out" });
   },
   adminStore: async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
