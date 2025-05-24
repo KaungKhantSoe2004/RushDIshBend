@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import pgPool from "../db";
 import getToken from "../helpers/createToken";
+import hashPassword from "../helpers/hashPassword";
 const bcrypt = require("bcryptjs");
 const AdminController = {
   me: async (req: Request, res: Response): Promise<void> => {
@@ -144,7 +145,7 @@ const AdminController = {
       });
     } catch (err) {
       console.error("Error in adminDashboard:", err);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", data: err });
     }
   },
   logout: async (req: Request, res: Response): Promise<void> => {
@@ -154,10 +155,177 @@ const AdminController = {
     res.status(200).json({ message: "logged out" });
   },
   adminStore: async (req: Request, res: Response): Promise<void> => {
-    res.status(200).json({
-      message: "Admin store",
-    });
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 10;
+      const offset = (page - 1) * limit;
+
+      const storeQuery = `
+      SELECT id, name, address_one AS location, status, owner, rating, profile 
+      FROM stores
+      LIMIT $1 OFFSET $2
+    `;
+
+      const countAllQuery = `SELECT COUNT(*)::int as total FROM stores`;
+      const countActiveQuery = `SELECT COUNT(*)::int as active FROM stores WHERE status = 'active'`;
+      const countPendingQuery = `SELECT COUNT(*)::int as pending FROM stores WHERE status = 'pending'`;
+      const countSuspendedQuery = `SELECT COUNT(*)::int as suspended FROM stores WHERE status = 'suspended'`;
+
+      const [
+        storeResult,
+        countAllResult,
+        countActiveResult,
+        countPendingResult,
+        countSuspendedResult,
+      ] = await Promise.all([
+        pgPool.query(storeQuery, [limit, offset]),
+        pgPool.query(countAllQuery),
+        pgPool.query(countActiveQuery),
+        pgPool.query(countPendingQuery),
+        pgPool.query(countSuspendedQuery),
+      ]);
+
+      const total = countAllResult.rows[0].total;
+      const totalPages = Math.ceil(total / limit);
+
+      const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+      res.status(200).json({
+        message: "Admin store",
+        data: storeResult.rows,
+        counts: {
+          total,
+          active: countActiveResult.rows[0].active,
+          pending: countPendingResult.rows[0].pending,
+          suspended: countSuspendedResult.rows[0].suspended,
+        },
+        pagination: {
+          page,
+          limit,
+          totalPages,
+          pages, // Array like [1, 2, 3, ..., totalPages]
+        },
+      });
+    } catch (error) {
+      console.error("adminStore error:", error);
+      res.status(500).json({ message: "Internal Server Error", data: error });
+    }
   },
+  storeCreate: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const {
+        name,
+        phoneOne,
+        phoneTwo,
+        email,
+        addressOne,
+        addressTwo,
+        role,
+        owner,
+        rating,
+        password,
+      } = req.body;
+      if (
+        !name ||
+        !email ||
+        !phoneOne ||
+        !phoneTwo ||
+        !addressOne ||
+        !addressTwo ||
+        !role ||
+        !owner ||
+        !rating ||
+        !password
+      ) {
+        res.status(400).json({
+          success: false,
+          data: `Missing required fields`,
+        });
+        return;
+      } else {
+        const hashedPassword = hashPassword(password);
+        const fileName = req.file?.filename;
+        await pgPool.query(
+          `INSERT INTO stores (
+          name, phone_one, phone_two, email, address_one, address_two,
+          account_status, password_hash, role, owner, profile
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          [
+            name,
+            phoneOne,
+            phoneTwo,
+            email,
+            addressOne,
+            addressTwo,
+            "active",
+            hashedPassword,
+            "store",
+            owner,
+            fileName,
+          ]
+        );
+        res.status(200).json({
+          message: "true",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal server error",
+        data: error,
+      });
+    }
+  },
+  storeSuspend: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const store_id = req.body.id;
+      await pgPool.query(
+        "UPDATE stores SET status = 'suspended' WHERE id = $1 ",
+        [store_id]
+      );
+      res.status(200).json({
+        message: "store suspended",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal Server Error",
+        data: error,
+      });
+    }
+  },
+  storePending: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const store_id = req.body.id;
+      await pgPool.query(
+        "UPDATE stores SET status = 'pending' WHERE id = $1 ",
+        [store_id]
+      );
+      res.status(200).json({
+        message: "store pending",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal Server Error",
+        data: error,
+      });
+    }
+  },
+  storeActive: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const store_id = req.body.id;
+      await pgPool.query("UPDATE stores SET status = 'active' WHERE id = $1 ", [
+        store_id,
+      ]);
+      res.status(200).json({
+        message: "store activated",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal Server Error",
+        data: error,
+      });
+    }
+  },
+
   adminDelivery: async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({
       message: "Admin Delivery",

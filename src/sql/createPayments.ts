@@ -10,9 +10,8 @@ const CreatePaymentsTable = `CREATE TABLE IF NOT EXISTS payments (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (order_id) REFERENCES orders(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  FOREIGN KEY (order_id) REFERENCES orders(id)
+
 );
 `;
 export default CreatePaymentsTable;

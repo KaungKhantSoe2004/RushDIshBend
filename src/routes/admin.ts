@@ -3,6 +3,7 @@ import UserController from "../controllers/userController";
 import AdminController from "../controllers/adminController";
 import verifyToken from "../helpers/verifyToken";
 import { verify } from "crypto";
+import { uploadSingle } from "../helpers/upload";
 
 const AdminRouter: Router = express.Router();
 
@@ -30,9 +31,16 @@ AdminRouter.get("/me", verifyToken, async (req: Request, res: Response) => {
 AdminRouter.get("/logout", verifyToken, async (req: Request, res: Response) => {
   await AdminController.logout(req, res);
 });
-AdminRouter.get("/store", verifyToken, async (req: Request, res: Response) => {
+AdminRouter.get("/stores", verifyToken, async (req: Request, res: Response) => {
   AdminController.adminStore(req, res);
 });
+AdminRouter.post(
+  "/addStore",
+  uploadSingle("storeLogo"),
+  async (req: Request, res: Response) => {
+    AdminController.storeCreate(req, res);
+  }
+);
 AdminRouter.get(
   "/delivery",
   verifyToken,

@@ -16,6 +16,9 @@ const runMigrations = async (): Promise<void> => {
     await pgPool.query(CreatePromotionTable);
     console.log("Promotion Table Created Successfully");
 
+    await pgPool.query(CreateDeliveryAgentTable);
+    console.log("Delivery Agent Table Created Successfully");
+
     await pgPool.query(CreateStoresTable);
     console.log("Stores Table Created Successfully");
 
@@ -25,16 +28,13 @@ const runMigrations = async (): Promise<void> => {
     await pgPool.query(CreatePromotionTable);
     console.log("Promotion Table Created Successfully");
 
-    await pgPool.query(CreateDeliveryAgentTable);
-    console.log("Delivery Agent Table Created Successfully");
-
     await pgPool.query(CreateOrdersTable);
     console.log("Orders Table Created Successfully");
 
     await pgPool.query(CreateReportTable);
     console.log("Report Table Created Successfully");
   } catch (err: any) {
-    console.log(err.message, "is error");
+    console.log(err, "is error");
   }
 };
 // export default runMigrations;

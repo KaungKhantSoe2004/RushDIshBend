@@ -11,6 +11,7 @@ const seedStores = async () => {
       address_one: "123 Main St, Yangon",
       address_two: "Room 101, Building A",
       password: "store1pass",
+      owner: "Kaung Khant Soe",
     },
     {
       name: "Store Two",
@@ -20,6 +21,7 @@ const seedStores = async () => {
       address_one: "456 Mandalay Rd, Mandalay",
       address_two: "2nd Floor, Block B",
       password: "store2pass",
+      owner: "Htet Htet Khaing",
     },
     {
       name: "Store Three",
@@ -29,6 +31,7 @@ const seedStores = async () => {
       address_one: "789 Capital Ave, Nay Pyi Taw",
       address_two: "Suite 3C, Tower C",
       password: "store3pass",
+      owner: "May Thet Swe",
     },
   ];
 
@@ -44,8 +47,8 @@ const seedStores = async () => {
       await pgPool.query(
         `INSERT INTO stores (
           name, phone_one, phone_two, email, address_one, address_two,
-          account_status, password_hash
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          account_status, password_hash, role, owner
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           store.name,
           store.phone_one,
@@ -55,6 +58,8 @@ const seedStores = async () => {
           store.address_two,
           "active",
           hashedPassword,
+          "store",
+          store.owner,
         ]
       );
       console.log(`✅ Store ${store.name} created.`);
