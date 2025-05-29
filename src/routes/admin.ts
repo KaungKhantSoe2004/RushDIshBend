@@ -41,11 +41,55 @@ AdminRouter.post(
     AdminController.storeCreate(req, res);
   }
 );
+AdminRouter.put(
+  "/storeStatus",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    AdminController.storeStatus(req, res);
+  }
+);
+AdminRouter.get(
+  "/eachStore/:id",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    AdminController.eachStore(req, res);
+  }
+);
+AdminRouter.post(
+  "/updateStore",
+  verifyToken,
+  uploadSingle("storeLogo"),
+  (req: Request, res: Response) => {
+    AdminController.updateStore(req, res);
+  }
+);
+AdminRouter.delete(
+  "/deleteStore/:id",
+  verifyToken,
+  (req: Request, res: Response) => {
+    AdminController.deleteStore(req, res);
+  }
+);
 AdminRouter.get(
   "/delivery",
   verifyToken,
   async (req: Request, res: Response) => {
     AdminController.adminDelivery(req, res);
+  }
+);
+AdminRouter.post(
+  "/addDelivery",
+  verifyToken,
+  uploadSingle("profile"),
+  async (req: Request, res: Response) => {
+    AdminController.deliveryCreate(req, res);
+  }
+);
+AdminRouter.get(
+  "/eachDelivery/:id",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    AdminController.eachDelivery(req, res);
   }
 );
 AdminRouter.get(

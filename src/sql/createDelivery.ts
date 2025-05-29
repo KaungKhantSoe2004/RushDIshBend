@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS delivery_agents (
   last_login TIMESTAMP,
   address_one TEXT,
   address_two TEXT,
+  rating NUMERIC(2,1) DEFAULT 1.0,
   account_status VARCHAR(20) DEFAULT 'active',
   points INTEGER DEFAULT 0,
   login_code VARCHAR(10),

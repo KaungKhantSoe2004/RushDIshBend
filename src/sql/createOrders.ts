@@ -12,6 +12,7 @@ address VARCHAR(260) NOT NULL,
 instuctions VARCHAR(1000) NOT NULL,
 customer_pickup_time TIMESTAMP,
 promotion_id INTEGER DEFAULT NULL,
+profit DECIMAL(13,2) DEFAULT 500 CHECK (profit >= 0),
 status VARCHAR(30) DEFAULT 'pending'  CHECK (
   status IN ('pending', 'completed', 'cancelled', 'in_progress', 'on_the_way', 'delivered', 'returned')
 ),

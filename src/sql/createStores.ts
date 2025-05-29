@@ -9,11 +9,11 @@ const CreateStoresTable = `CREATE TABLE IF NOT EXISTS stores (
   account_status VARCHAR(20) DEFAULT 'active',
   profile TEXT,
   role VARCHAR(20) DEFAULT 'store',
-  promotion_one INTEGER,
-  promotion_two INTEGER,
+  promotion_one INTEGER NULL,
+  promotion_two INTEGER NULL,
   owner VARCHAR(100) NOT NULL, 
-  promotion_three INTEGER,
-  promotion_four INTEGER,
+  promotion_three INTEGER NULL,
+  promotion_four INTEGER NULL,
   rating NUMERIC(2,1) DEFAULT 1.0,
   status VARCHAR(30) DEFAULT 'pending'  CHECK (
   status IN ('active', 'pending', 'suspended')
