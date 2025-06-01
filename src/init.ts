@@ -1,4 +1,5 @@
 import pgPool from "./db";
+import createActivityTable from "./sql/createActivity";
 
 import CreateDeliveryAgentTable from "./sql/createDelivery";
 import CreateOrdersTable from "./sql/createOrders";
@@ -33,6 +34,9 @@ const runMigrations = async (): Promise<void> => {
 
     await pgPool.query(CreateReportTable);
     console.log("Report Table Created Successfully");
+
+    await pgPool.query(createActivityTable);
+    console.log("Activity table created successfully");
   } catch (err: any) {
     console.log(err, "is error");
   }

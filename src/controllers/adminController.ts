@@ -3,6 +3,13 @@ import pgPool from "../db";
 import getToken from "../helpers/createToken";
 import hashPassword from "../helpers/hashPassword";
 import deleteImage from "../helpers/deleteFile";
+import PhoneValiation from "../helpers/validation/phoneNumberValidation";
+import storeCreationValidtion from "../helpers/validation/storeValidation";
+import validateDeliveryAgentInput from "../helpers/validation/dliveryAgentValidation";
+import storeUpdateValidation from "../helpers/validation/storeUpdateValidation";
+import deliveryAgentUpdateValidation from "../helpers/validation/deliveryUpdateValidation";
+import { validateUserCreationInput } from "../helpers/validation/userValidation";
+import userUpdateValidation from "../helpers/validation/userUpdateValidation";
 const bcrypt = require("bcryptjs");
 const AdminController = {
   me: async (req: Request, res: Response): Promise<void> => {
@@ -234,27 +241,15 @@ const AdminController = {
         rating,
         password,
       } = req.body;
-      if (
-        !name ||
-        !email ||
-        !phoneOne ||
-        !phoneTwo ||
-        !addressOne ||
-        !addressTwo ||
-        !role ||
-        !owner ||
-        !rating ||
-        !password
-      ) {
-        res.status(400).json({
-          success: false,
-          data: `Missing required fields`,
-        });
+
+      const isValid = await storeCreationValidtion(req.body, res);
+
+      if (!isValid) {
         return;
       } else {
         const hashedPassword = hashPassword(password);
         const fileName = req.file?.filename;
-        console.log(fileName, "is file name");
+
         await pgPool.query(
           `INSERT INTO stores (
           name, phone_one, phone_two, email, address_one, address_two,
@@ -320,7 +315,6 @@ const AdminController = {
     }
   },
   updateStore: async (req: Request, res: Response): Promise<void> => {
-    console.log(req.file);
     try {
       const {
         id,
@@ -334,21 +328,12 @@ const AdminController = {
         rating,
         status,
       } = req.body;
-
-      if (
-        !id ||
-        !name ||
-        !email ||
-        !phone_one ||
-        !phone_two ||
-        !address_one ||
-        !address_two ||
-        !owner
-      ) {
-        res.status(400).json({
-          success: false,
-          data: "Missing required fields",
-        });
+      const isValid = await storeUpdateValidation(req.body, res);
+      if (!isValid) {
+        // res.status(400).json({
+        //   success: false,
+        //   data: "Missing required fields",
+        // });
         return;
       }
 
@@ -361,33 +346,14 @@ const AdminController = {
         );
         const prevProfile = prevData.rows[0].profile;
 
-        console.log(prevProfile);
-        deleteImage(prevProfile);
-      }
-      const phones = await pgPool.query(
-        "SELECT * FROM stores WHERE phone_one = $1 AND id != $2",
-        [phone_one, id]
-      );
+        if (prevProfile) {
+          deleteImage(prevProfile);
+        }
 
-      if (phones.rows.length > 0) {
-        response.status(401).json({
-          message: "Phone Number One already exists",
-        });
-        return;
-      }
-      const phonesTwo = await pgPool.query(
-        "SELECT * FROM stores WHERE phone_two = $1 AND id != $2",
-        [phone_two, id]
-      );
-
-      if (phonesTwo.rows.length > 0) {
-        response.status(401).json({
-          message: "Phone Number Two already exists",
-        });
-        return;
-      }
-      await pgPool.query(
-        `UPDATE stores SET
+        await PhoneValiation(phone_one, phone_two, id, "stores");
+        console.log("after query");
+        await pgPool.query(
+          `UPDATE stores SET
         name = $1,
         phone_one = $2,
         phone_two = $3,
@@ -400,23 +366,52 @@ const AdminController = {
         profile = $10
         WHERE id = $11
       `,
-        [
-          name,
-          phone_one,
-          phone_two,
-          email,
-          address_one,
-          address_two,
-          owner,
-          rating || null,
-          status || "active",
-          fileName,
-          id,
-        ]
-      );
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            owner,
+            rating || null,
+            status || "active",
+            fileName,
+            id,
+          ]
+        );
+      } else {
+        PhoneValiation(phone_one, phone_two, id, "stores");
+        await pgPool.query(
+          `UPDATE stores SET
+        name = $1,
+        phone_one = $2,
+        phone_two = $3,
+        email = $4,
+        address_one = $5,
+        address_two = $6,
+        owner = $7,
+        rating = $8,
+        status = $9
+        WHERE id = $10
+      `,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            owner,
+            rating || null,
+            status || "active",
+            id,
+          ]
+        );
+      }
 
       res.status(200).json({
-        message: "true", // Matching your create response style
+        message: "true",
       });
     } catch (error) {
       console.error("Update store error:", error);
@@ -436,8 +431,10 @@ const AdminController = {
       );
       const prevProfile = prevData.rows[0].profile;
 
-      console.log(prevProfile);
-      deleteImage(prevProfile);
+      if (prevProfile) {
+        deleteImage(prevProfile);
+      }
+
       res.status(200).json({
         message: "Deleting Success",
       });
@@ -454,12 +451,12 @@ const AdminController = {
       let tableQuery: string;
       let queryParams: any[];
       if (search) {
-        tableQuery = `SELECT id, name, address_one AS zone, account_status, completed_orders, total_profit, profile ,today_profit
+        tableQuery = `SELECT id, name, address_one AS zone, account_status, rating, completed_orders, total_profit, profile ,today_profit
       FROM delivery_table WHERE name ILIKE $1 OR address_one ILIKE $1 LIMIT $2 OFFSET $3 `;
         queryParams = [`%${search}%`, limit, offset];
       } else {
         tableQuery = `
-      SELECT id, name, address_one AS zone, account_status, completed_orders, total_profit, profile ,today_profit
+      SELECT id, name, address_one AS zone, account_status, rating, completed_orders, total_profit, profile ,today_profit
       FROM delivery_table
       LIMIT $1 OFFSET $2
     `;
@@ -479,7 +476,7 @@ const AdminController = {
         ]);
 
       const total = totalProfit.rows[0].total_profit;
-      const totalPages = Math.ceil(total / limit);
+      const totalPages = Math.ceil(allCount.rows[0].count / limit);
 
       const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
@@ -518,22 +515,8 @@ const AdminController = {
         rating,
         password,
       } = req.body;
-      if (
-        !name ||
-        !email ||
-        !phone_one ||
-        !phone_two ||
-        !address_one ||
-        !address_two ||
-        !vehicle_number ||
-        !vehicle_type ||
-        !rating ||
-        !password
-      ) {
-        res.status(400).json({
-          success: false,
-          data: `Missing required fields`,
-        });
+      const isValid = await validateDeliveryAgentInput(req.body, res);
+      if (!isValid) {
         return;
       } else {
         const hashedPassword = hashPassword(password);
@@ -569,16 +552,6 @@ const AdminController = {
       });
     }
   },
-  adminOrderList: async (req: Request, res: Response): Promise<void> => {
-    res.status(200).json({
-      message: "Admin order list",
-    });
-  },
-  adminUserList: async (req: Request, res: Response): Promise<void> => {
-    res.status(200).json({
-      message: "Admin user list",
-    });
-  },
   eachDelivery: async (req: Request, res: Response): Promise<void> => {
     try {
       const delivery_id = req.params.id;
@@ -608,6 +581,461 @@ const AdminController = {
         });
       }
     } catch (error) {
+      res.status(500).json({
+        message: "Internal server error",
+        data: error,
+      });
+    }
+  },
+  updateDelivery: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const {
+        id,
+        name,
+        phone_one,
+        phone_two,
+        email,
+        address_one,
+        address_two,
+        owner,
+        rating,
+        status,
+        vehicle_number,
+        vehicle_type,
+      } = req.body;
+      console.log(req.body, "is body");
+      const isValid = await deliveryAgentUpdateValidation(req.body, res);
+      if (!isValid) {
+        return;
+      }
+
+      const fileName = req.file?.filename;
+      console.log(fileName, "is filename");
+      if (fileName) {
+        const prevData = await pgPool.query(
+          `SELECT profile , phone_one , phone_two FROM delivery_agents WHERE id = $1`,
+          [id]
+        );
+        const prevProfile = prevData.rows[0].profile;
+
+        if (prevProfile) {
+          deleteImage(prevProfile);
+        }
+
+        await PhoneValiation(phone_one, phone_two, id, "stores");
+        console.log("after query");
+        await pgPool.query(
+          `UPDATE delivery_agents SET
+    name = $1,
+    phone_one = $2,
+    phone_two = $3,
+    email = $4,
+    address_one = $5,
+    address_two = $6,
+    vehicle_type = $7,
+    vehicle_number = $12,
+    rating = $8,
+    account_status = $9,
+    profile = $10
+  WHERE id = $11
+  `,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            vehicle_type,
+            rating || "1.0",
+            status || "active",
+            fileName,
+            id,
+            vehicle_number,
+          ]
+        );
+      } else {
+        PhoneValiation(phone_one, phone_two, id, "stores");
+        await pgPool.query(
+          `UPDATE delivery_agents SET
+    name = $1,
+    phone_one = $2,
+    phone_two = $3,
+    email = $4,
+    address_one = $5,
+    address_two = $6,
+    vehicle_type = $10,
+    vehicle_number = $11,
+    rating = $7,
+    account_status = $8
+    WHERE id = $9
+  `,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            rating || null,
+            status || "active",
+
+            id,
+            vehicle_type,
+            vehicle_number,
+          ]
+        );
+      }
+
+      res.status(200).json({
+        message: "true",
+      });
+    } catch (error) {
+      console.error("Update Delivery error:", error);
+      res.status(500).json({
+        message: "Internal server error",
+        data: error instanceof Error ? error.message : error,
+      });
+    }
+  },
+  adminOrderList: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const { search } = req.query;
+      const limit = 10;
+      const offset = (page - 1) * limit;
+      let orderQuery: string;
+      let queryParams: any[];
+      if (search) {
+        orderQuery = `SELECT * FROM order_table WHERE customer_name ILIKE $1 LIMIT $2 OFFSET $3`;
+        queryParams = [`%${search}%`, limit, offset];
+      } else {
+        orderQuery = `SELECT * FROM order_table LIMIT $1 OFFSET $2`;
+        queryParams = [limit, offset];
+      }
+      const countAllorders = `SELECT COUNT(*)::int as total FROM orders`;
+      const countProgressOrders = `SELECT COUNT(*)::int as progressCount FROM orders WHERE status = 'in_progress'`;
+      const countCancelledOrders = `SELECT COUNT(*)::int as cancelledCount FROM orders WHERE status = 'cancelled'`;
+      const countDeliveredOrders = `SELECT COUNT(*)::int as dlieveredCount FROM orders WHERE status = 'delivered'`;
+      const orders = await pgPool.query(orderQuery, queryParams);
+      const totalOrders = await pgPool.query(countAllorders);
+      const progressOrders = await pgPool.query(countProgressOrders);
+      const cancelledOrders = await pgPool.query(countCancelledOrders);
+      const deliveredOrders = await pgPool.query(countDeliveredOrders);
+      const totalPages = Math.ceil(totalOrders.rows[0].total / limit);
+
+      const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+      if (
+        orders.rows &&
+        totalOrders.rows &&
+        progressOrders.rows &&
+        cancelledOrders.rows &&
+        deliveredOrders.rows
+      ) {
+        res.status(200).json({
+          message: "Success",
+          data: orders.rows,
+          counts: {
+            totalOrders: totalOrders.rows[0].total,
+            progressOrders: progressOrders.rows[0].progresscount,
+            cancelledOrders: cancelledOrders.rows[0].cancelledcount,
+            deliveredOrders: deliveredOrders.rows[0].dlieveredcount,
+          },
+          pagination: {
+            page,
+            limit,
+            totalPages,
+            pages,
+          },
+        });
+      } else {
+        res.status(404).json({
+          message: "No orders found",
+        });
+      }
+    } catch (error) {
+      console.log(error, "is error");
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  },
+  adminUserList: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const { search } = req.query;
+
+      const limit = 2;
+      const offset = (page - 1) * limit;
+      let userQuery: string;
+      let queryParams: any[];
+      if (search) {
+        userQuery = `SELECT 
+  u.id, 
+  u.name, 
+  u.email, 
+  u.phone_one, 
+  u.phone_two, 
+  u.address_one, 
+  u.address_two, 
+  u.role, 
+  u.account_status, 
+  u.points, 
+  u.profile, 
+  u.created_at,
+  COUNT(o.id) AS orderCount,
+  MAX(o.created_at) AS last_order_date
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE 
+  u.name ILIKE $1 
+  OR u.email ILIKE $1 
+  OR u.phone_one ILIKE $1 
+  OR u.phone_two ILIKE $1
+GROUP BY 
+  u.id
+LIMIT $2 OFFSET $3;
+`;
+        queryParams = [`%${search}%`, limit, offset];
+      } else {
+        userQuery = `SELECT 
+  u.id, 
+  u.name, 
+  u.email, 
+  u.phone_one, 
+  u.phone_two, 
+  u.address_one, 
+  u.address_two, 
+  u.role, 
+  u.account_status, 
+  u.points, 
+  u.profile, 
+  u.created_at,
+  COUNT(o.id) AS orderCount,
+  MAX(o.created_at) AS last_order_date
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.role = 'user'
+GROUP BY 
+  u.id
+LIMIT $1 OFFSET $2;
+`;
+        queryParams = [limit, offset];
+      }
+      const countAllUsersQuery = `SELECT COUNT(*)::int as total FROM users WHERE users.role = 'user'`;
+      const countActiveUsersQuery = `SELECT COUNT(*)::int as active FROM users WHERE account_status = 'active' AND role = 'user'`;
+      const countInactiveUsersQuery = `SELECT COUNT(*)::int as inactive FROM users WHERE account_status = 'inactive' AND role = 'user'`;
+      const countBannedUsersQuery = `SELECT COUNT(*)::int as banned FROM users WHERE account_status = 'banned' AND role = 'user'`;
+      const [
+        userResult,
+        countAllResult,
+        countActiveResult,
+        countInactiveResult,
+        countBannedResult,
+      ] = await Promise.all([
+        pgPool.query(userQuery, queryParams),
+        pgPool.query(countAllUsersQuery),
+        pgPool.query(countActiveUsersQuery),
+        pgPool.query(countInactiveUsersQuery),
+        pgPool.query(countBannedUsersQuery),
+      ]);
+      const usersData = userResult.rows;
+      const total = countAllResult.rows[0].total;
+      const totalPages = Math.ceil(total / limit);
+      const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+      const activeUsersCount = countActiveResult.rows[0].active;
+      const inactiveUsersCount = countInactiveResult.rows[0].inactive;
+      const bannedUsersCount = countBannedResult.rows[0].banned;
+      res.status(200).json({
+        message: "admin user list",
+        data: usersData,
+        pagination: {
+          page,
+          limit,
+          totalPages,
+          pages,
+        },
+        counts: {
+          total,
+          active: activeUsersCount,
+          inactive: inactiveUsersCount,
+          banned: bannedUsersCount,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  },
+  adduser: async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log(req.body);
+      const {
+        name,
+        phone_one,
+        phone_two,
+        email,
+        address_one,
+        address_two,
+        password,
+      } = req.body;
+      const isValid = await validateUserCreationInput(req.body, res);
+      if (!isValid) {
+        return;
+      } else {
+        const hashedPassword = hashPassword(password);
+        const fileName = req.file?.filename || null;
+        await pgPool.query(
+          `INSERT INTO users (
+          name, phone_one, phone_two, email, address_one, address_two,
+           password_hash, profile
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            hashedPassword,
+            fileName,
+          ]
+        );
+        res.status(200).json({
+          message: "true",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        data: error,
+      });
+    }
+  },
+  updateUser: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const {
+        id,
+        name,
+        phone_one,
+        phone_two,
+        email,
+        address_one,
+        address_two,
+      } = req.body;
+      const isValid = await userUpdateValidation(req.body, res);
+      if (!isValid) {
+        return;
+      }
+
+      const fileName = req.file?.filename;
+      console.log(fileName, "is filename");
+      if (fileName) {
+        const prevData = await pgPool.query(
+          `SELECT profile , phone_one , phone_two FROM users WHERE id = $1`,
+          [id]
+        );
+        const prevProfile = prevData.rows[0].profile;
+
+        if (prevProfile) {
+          deleteImage(prevProfile);
+        }
+
+        await PhoneValiation(phone_one, phone_two, id, "stores");
+        console.log("after query");
+        await pgPool.query(
+          `UPDATE users SET
+        name = $1,
+        phone_one = $2,
+        phone_two = $3,
+        email = $4,
+        address_one = $5,
+        address_two = $6,
+        profile = $7
+        WHERE id = $8
+      `,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            fileName,
+            id,
+          ]
+        );
+      } else {
+        PhoneValiation(phone_one, phone_two, id, "stores");
+        await pgPool.query(
+          `UPDATE users SET
+        name = $1,
+        phone_one = $2,
+        phone_two = $3,
+        email = $4,
+        address_one = $5,
+        address_two = $6,
+
+        WHERE id = $7
+      `,
+          [name, phone_one, phone_two, email, address_one, address_two, id]
+        );
+      }
+
+      res.status(200).json({
+        message: "true",
+      });
+    } catch (error) {
+      console.error("Update store error:", error);
+      res.status(500).json({
+        message: "Internal server error", // Matching your error response style
+        data: error instanceof Error ? error.message : error,
+      });
+    }
+  },
+  eachUser: async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log("in user ");
+      const user_id = req.params.id;
+      if (user_id) {
+        const { rows: userRows } = await pgPool.query(
+          `SELECT *
+      FROM users WHERE id = $1`,
+          [user_id]
+        );
+        const { rows: RecentOrderRows } = await pgPool.query(
+          `SELECT o.* , u.name as customer FROM orders as o JOIN users as u ON o.user_id = u.id WHERE o.user_id = $1 ORDER BY created_at DESC lIMIT 5`,
+          [user_id]
+        );
+        const { rows: totalOrders } = await pgPool.query(
+          `SELECT SUM(profit) as totalSpent , COUNT(*) FROM orders as totalOrderCount WHERE user_id = $1`,
+          [user_id]
+        );
+        if (userRows.length == 1 && RecentOrderRows && totalOrders) {
+          const user = userRows[0];
+          const { totalspent, count } = totalOrders[0];
+          user.totalSpent = totalspent;
+          user.orderCount = count;
+          console.log(totalOrders[0]);
+          res.status(200).json({
+            data: { ...user },
+            recentOrders: RecentOrderRows,
+          });
+        } else {
+          res.status(404).json({
+            message: "Delivery Agent not Found",
+          });
+        }
+      } else {
+        res.status(400).json({
+          message: "Delivery ID is required",
+        });
+      }
+    } catch (error) {
+      console.log(error);
       res.status(500).json({
         message: "Internal server error",
         data: error,

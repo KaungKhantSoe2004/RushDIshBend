@@ -15,6 +15,7 @@ import ReportRouter from "./routes/reports";
 import UserRouter from "./routes/user";
 import AdminRouter from "./routes/admin";
 import cookieParser from "cookie-parser";
+
 dotenv.config();
 const app = express();
 const mongourl: string | undefined = process.env.MONGO_URL;
@@ -78,18 +79,31 @@ app.use("/api/report", ReportRouter);
 app.use("/api/admin/", AdminRouter);
 app.use("/api/user", UserRouter);
 
+const connectPostgresql = async () => {
+  try {
+    const result = await pgPool.query("SELECT * FROM users");
+    console.log("✅ Connected to PostgreSQL ");
+    app.listen(PORT, () => {
+      console.log(`Server is running on port http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ PostgreSQL connection error:", err);
+  }
+};
+
 mongoose
   .connect(mongourl)
   .then(async () => {
     console.log("Connected to MongDB");
-    try {
-      const result = await pgPool.query("SELECT * FROM users");
-      console.log("✅ Connected to PostgreSQL ");
-      app.listen(PORT, () => {
-        console.log(`Server is running on port http://localhost:${PORT}`);
-      });
-    } catch (err) {
-      console.error("❌ PostgreSQL connection error:", err);
-    }
+    // try {
+    //   const result = await pgPool.query("SELECT * FROM users");
+    //   console.log("✅ Connected to PostgreSQL ");
+    //   app.listen(PORT, () => {
+    //     console.log(`Server is running on port http://localhost:${PORT}`);
+    //   });
+    // } catch (err) {
+    //   console.error("❌ PostgreSQL connection error:", err);
+    // }
+    await connectPostgresql();
   })
   .catch((err) => console.log(err));

@@ -92,6 +92,14 @@ AdminRouter.get(
     AdminController.eachDelivery(req, res);
   }
 );
+AdminRouter.post(
+  "/updateDelivery",
+  verifyToken,
+  uploadSingle("profile"),
+  async (req: Request, res: Response) => {
+    AdminController.updateDelivery(req, res);
+  }
+);
 AdminRouter.get(
   "/orderList",
   verifyToken,
@@ -106,5 +114,22 @@ AdminRouter.get(
     AdminController.adminUserList(req, res);
   }
 );
-
+AdminRouter.post(
+  "/addUser",
+  verifyToken,
+  uploadSingle("profile"),
+  async (req: Request, res: Response) => {
+    AdminController.adduser(req, res);
+  }
+);
+AdminRouter.post(
+  "/updateUser",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    AdminController.updateUser;
+  }
+);
+AdminRouter.get("/eachUser/:id", verifyToken, (req: Request, res: Response) => {
+  AdminController.eachUser(req, res);
+});
 export default AdminRouter;
