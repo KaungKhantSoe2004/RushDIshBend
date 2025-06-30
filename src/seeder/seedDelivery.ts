@@ -48,7 +48,7 @@ const seedDeliveryAgents = async () => {
     );
 
     if (existing.rows.length === 0) {
-      const hashedPassword = hashPassword(agent.password);
+      const hashedPassword = await hashPassword(agent.password);
 
       await pgPool.query(
         `INSERT INTO delivery_agents (

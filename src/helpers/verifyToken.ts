@@ -12,6 +12,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction): any => {
         const userId = decoded.id;
         const userRole = decoded.role;
         const auth = decoded.auth;
+        console.log(userRole);
         (req as any).user = {
           id: userId,
           role: userRole,

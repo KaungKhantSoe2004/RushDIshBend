@@ -12,7 +12,9 @@
     "seedDelivery": "ts-node src/seeder/seedDelivery.ts",
     "seedStores": "ts-node src/seeder/seedStores.ts",
     "seedOrder": "ts-node src/seeder/seedOrder.ts",
-    "seedPromotion": "ts-node src/seeder/seedPromotion.ts"
+    "seedPromotion": "ts-node src/seeder/seedPromotion.ts",
+    "seedNotifications": "ts-node src/seeder/seedNotifications.ts",
+    "seedMenu": "ts-node src/seeder/seedMenu.ts"
   },
   "keywords": [],
   "author": "",

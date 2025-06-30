@@ -4,39 +4,28 @@ import pgPool from "../../db";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRegex = /^\+959\d{9,10}$/;
 
-const userUpdateValidation = async (
+const profileUpdateValidation = async (
+  id: string | number,
   userData: {
-    id: number;
     name?: string;
     phone_one?: string;
     phone_two?: string;
     email?: string;
     address_one?: string;
     address_two?: string;
-    status?: string;
   },
   res: Response
 ): Promise<boolean> => {
-  const {
-    id,
-    name,
-    phone_one,
-    phone_two,
-    email,
-    address_one,
-    address_two,
-    status,
-  } = userData;
+  const { name, phone_one, phone_two, email, address_one, address_two } =
+    userData;
 
   if (
-    !id ||
     !name ||
     !email ||
     !phone_one ||
     !phone_two ||
     !address_one ||
-    !address_two ||
-    !status
+    !address_two
   ) {
     res.status(400).json({
       success: false,
@@ -45,10 +34,10 @@ const userUpdateValidation = async (
     return false;
   }
 
-  if (!id) {
-    res.status(400).json({ success: false, message: "User ID is required." });
-    return false;
-  }
+  //   if (!id) {
+  //     res.status(400).json({ success: false, message: "User ID is required." });
+  //     return false;
+  //   }
 
   // === Format Checks ===
   if (email && !emailRegex.test(email)) {
@@ -110,4 +99,4 @@ const userUpdateValidation = async (
   return true;
 };
 
-export default userUpdateValidation;
+export default profileUpdateValidation;

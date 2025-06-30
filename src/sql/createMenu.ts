@@ -1,0 +1,14 @@
+const CreateMenuTable = `CREATE TABLE IF NOT EXISTS menu (
+id SERIAL PRIMARY KEY,
+store_id INTEGER NOT NULL,
+name VARCHAR(100) NOT NULL,
+description TEXT,
+price DECIMAL(10,2) NOT NULL,
+category VARCHAR(50) NOT NULL,
+image TEXT,
+is_available BOOLEAN DEFAULT TRUE,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+)`;
+export default CreateMenuTable;

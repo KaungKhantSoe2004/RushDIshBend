@@ -10,6 +10,10 @@ import storeUpdateValidation from "../helpers/validation/storeUpdateValidation";
 import deliveryAgentUpdateValidation from "../helpers/validation/deliveryUpdateValidation";
 import { validateUserCreationInput } from "../helpers/validation/userValidation";
 import userUpdateValidation from "../helpers/validation/userUpdateValidation";
+import { validatePromotionInput } from "../helpers/validation/promotionValidatoin";
+import { rmSync } from "fs";
+import { validateUpdatePromotionInput } from "../helpers/validation/updatePromotionValidation";
+import profileUpdateValidation from "../helpers/validation/profileUpdateValidation";
 const bcrypt = require("bcryptjs");
 const AdminController = {
   me: async (req: Request, res: Response): Promise<void> => {
@@ -21,28 +25,44 @@ const AdminController = {
       } = (req as any).user;
 
       console.log(user_id, user_role, user_auth, "is id");
-
-      // if (user_role === "admin" && user_auth === "admin") {
-      const result = await pgPool.query("SELECT * FROM users WHERE id = $1", [
-        user_id,
-      ]);
-
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
+      if (user_role == "store" && user_auth == "store") {
+        console.log("in store");
         res.status(200).json({
-          data: user,
+          route: "store",
           message: "success",
         });
+      } else if (
+        user_role == "delivery_agent" &&
+        user_auth == "delivery_agent"
+      ) {
+        console.log("in delivery");
+        res.status(200).json({
+          route: "delivery_agent",
+          message: "success",
+        });
+      } else if (user_role === "admin" && user_auth === "admin") {
+        console.log("in admin");
+        const result = await pgPool.query("SELECT * FROM users WHERE id = $1", [
+          user_id,
+        ]);
+
+        if (result.rows.length > 0) {
+          const user = result.rows[0];
+          res.status(200).json({
+            route: "admin",
+            data: user,
+            message: "success",
+          });
+        } else {
+          res.status(404).json({
+            message: "User not found",
+          });
+        }
       } else {
-        res.status(404).json({
-          message: "User not found",
+        res.status(401).json({
+          message: "Unauthorized",
         });
       }
-      // } else {
-      //   res.status(401).json({
-      //     message: "Unauthorized",
-      //   });
-      // }
     } catch (error) {
       res.status(500).json({
         message: "Internal Server Error",
@@ -160,6 +180,12 @@ const AdminController = {
     res.clearCookie("jwt", {
       httpOnly: true,
     });
+    res.clearCookie("jwt", {
+      httpOnly: true,
+    });
+    res.clearCookie("jwt", {
+      httpOnly: true,
+    });
     res.status(200).json({ message: "logged out" });
   },
   adminStore: async (req: Request, res: Response): Promise<void> => {
@@ -247,7 +273,7 @@ const AdminController = {
       if (!isValid) {
         return;
       } else {
-        const hashedPassword = hashPassword(password);
+        const hashedPassword = await hashPassword(password);
         const fileName = req.file?.filename;
 
         await pgPool.query(
@@ -269,6 +295,7 @@ const AdminController = {
             fileName,
           ]
         );
+
         res.status(200).json({
           message: "true",
         });
@@ -442,6 +469,36 @@ const AdminController = {
       res.status(500).json({ message: "Falied Deleting the store" });
     }
   },
+  storeUpdatePassword: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id, password } = req.params;
+      if (!id || !password) {
+        res.status(400).json({ error: "Missing required parameter: id" });
+        return;
+      } else {
+        const prevData = await pgPool.query(
+          `SELECT id , password FROM stores WHERE id = $1`,
+          [id]
+        );
+        if (prevData) {
+          const hashedPassword = await hashPassword(password);
+          await pgPool.query(
+            `UPDATE stores SET password_hash = $1 WHERE id = $2`,
+            [hashedPassword, id]
+          );
+        } else {
+          res.status(400).json({ error: "Missing required parameter: id" });
+          return;
+        }
+      }
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal server error",
+        data: error,
+      });
+    }
+  },
+
   adminDelivery: async (req: Request, res: Response): Promise<void> => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -519,7 +576,7 @@ const AdminController = {
       if (!isValid) {
         return;
       } else {
-        const hashedPassword = hashPassword(password);
+        const hashedPassword = await hashPassword(password);
         const fileName = req.file?.filename;
         await pgPool.query(
           `INSERT INTO delivery_agents (
@@ -714,6 +771,7 @@ const AdminController = {
         queryParams = [limit, offset];
       }
       const countAllorders = `SELECT COUNT(*)::int as total FROM orders`;
+
       const countProgressOrders = `SELECT COUNT(*)::int as progressCount FROM orders WHERE status = 'in_progress'`;
       const countCancelledOrders = `SELECT COUNT(*)::int as cancelledCount FROM orders WHERE status = 'cancelled'`;
       const countDeliveredOrders = `SELECT COUNT(*)::int as dlieveredCount FROM orders WHERE status = 'delivered'`;
@@ -885,7 +943,7 @@ LIMIT $1 OFFSET $2;
       if (!isValid) {
         return;
       } else {
-        const hashedPassword = hashPassword(password);
+        const hashedPassword = await hashPassword(password);
         const fileName = req.file?.filename || null;
         await pgPool.query(
           `INSERT INTO users (
@@ -917,6 +975,7 @@ LIMIT $1 OFFSET $2;
   },
   updateUser: async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log(req.body);
       const {
         id,
         name,
@@ -925,6 +984,7 @@ LIMIT $1 OFFSET $2;
         email,
         address_one,
         address_two,
+        status,
       } = req.body;
       const isValid = await userUpdateValidation(req.body, res);
       if (!isValid) {
@@ -954,7 +1014,8 @@ LIMIT $1 OFFSET $2;
         email = $4,
         address_one = $5,
         address_two = $6,
-        profile = $7
+        profile = $7,
+        account_status = $9
         WHERE id = $8
       `,
           [
@@ -966,6 +1027,7 @@ LIMIT $1 OFFSET $2;
             address_two,
             fileName,
             id,
+            status,
           ]
         );
       } else {
@@ -978,10 +1040,19 @@ LIMIT $1 OFFSET $2;
         email = $4,
         address_one = $5,
         address_two = $6,
-
+        account_status = $8
         WHERE id = $7
       `,
-          [name, phone_one, phone_two, email, address_one, address_two, id]
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            id,
+            status,
+          ]
         );
       }
 
@@ -1014,15 +1085,32 @@ LIMIT $1 OFFSET $2;
           `SELECT SUM(profit) as totalSpent , COUNT(*) FROM orders as totalOrderCount WHERE user_id = $1`,
           [user_id]
         );
-        if (userRows.length == 1 && RecentOrderRows && totalOrders) {
+        const { rows: RecentActivities } = await pgPool.query(
+          `SELECT * FROM activities WHERE user_id = $1`,
+          [user_id]
+        );
+        const { rows: RecentNotes } = await pgPool.query(
+          `SELECT * FROM notes WHERE user_id = $1`,
+          [user_id]
+        );
+        if (
+          userRows.length == 1 &&
+          RecentOrderRows &&
+          totalOrders &&
+          RecentActivities &&
+          RecentNotes
+        ) {
           const user = userRows[0];
+
           const { totalspent, count } = totalOrders[0];
           user.totalSpent = totalspent;
           user.orderCount = count;
           console.log(totalOrders[0]);
           res.status(200).json({
-            data: { ...user },
+            data: { user },
             recentOrders: RecentOrderRows,
+            recentActivities: RecentActivities,
+            recentNotes: RecentNotes,
           });
         } else {
           res.status(404).json({
@@ -1039,6 +1127,347 @@ LIMIT $1 OFFSET $2;
       res.status(500).json({
         message: "Internal server error",
         data: error,
+      });
+    }
+  },
+  eachOrder: async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log("in user ");
+      const order_id = req.params.id;
+      if (order_id) {
+        const { rows: orderdetails } = await pgPool.query(
+          `
+  SELECT 
+    u.name as customer_name, 
+    u.phone_one as customer_phone, 
+    u.address_one as customer_address, 
+    u.email as customer_email,
+    d.name as agent_name, 
+    d.phone_one as agent_phone, 
+    d.vehicle_number as agent_vehicle_number, 
+    d.vehicle_type as agent_vehicle, 
+    d.id as agent_id,
+    d.profile as agent_profile, 
+    d.rating as agent_rating,
+    d.created_at as agent_created_at, 
+    CONCAT(d.current_longitude, ',', d.current_latitude) as agent_currentLocation, 
+    s.name as store_name, 
+    s.address_one as store_address, 
+    s.phone_one as store_phone, 
+    o.* 
+  FROM orders as o 
+  JOIN users as u ON o.user_id = u.id 
+  JOIN delivery_agents as d ON o.delivery_id = d.id 
+  JOIN stores as s ON o.store_id = s.id 
+  WHERE o.id = $1
+`,
+          [order_id]
+        );
+        const orderDetails = orderdetails[0];
+        res.status(200).json({
+          message: "Success",
+          data: orderDetails,
+        });
+      } else {
+        res.status(400).json({
+          message: "Delivery ID is required",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        message: "Internal server error",
+        data: error,
+      });
+    }
+  },
+  promotions: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { rows: Promotions } = await pgPool.query(
+        `SELECT * FROM promotions`
+      );
+      if (Promotions) {
+        res.status(200).json({
+          message: "Success",
+          data: Promotions,
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  },
+  addPromotion: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const isValid = await validatePromotionInput(req.body, res);
+      if (isValid) {
+        const {
+          title,
+          description,
+          discount_type,
+          discount_value,
+          minimum_spent_price,
+          start_date,
+          end_date,
+          usage_limit,
+          status,
+        } = req.body;
+        console.log(req.body);
+        const newData = await pgPool.query(
+          `INSERT INTO promotions  (title, description, discount_type, discount_value, min_order_amount, start_date, end_date, 
+    usage_limit, status) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9 )`,
+          [
+            title,
+            description,
+            discount_type,
+            discount_value,
+            minimum_spent_price,
+            start_date,
+            end_date,
+            usage_limit,
+            status,
+          ]
+        );
+        if (newData) {
+          console.log(newData);
+          res.status(200).json({
+            message: "Success",
+            data: newData,
+          });
+        } else {
+          res.status(500).json({
+            message: "Internal Server Error",
+          });
+        }
+      } else {
+        console.log("error", isValid);
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  },
+  updatePromotion: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const isValid = await validateUpdatePromotionInput(req.body, res);
+      if (isValid) {
+        const {
+          id,
+          title,
+          description,
+          discount_type,
+          discount_value,
+          minimum_spent_price,
+          start_date,
+          end_date,
+          usage_limit,
+          status,
+        } = req.body;
+        console.log(req.body);
+        const newData = await pgPool.query(
+          `UPDATE promotions SET title = $1,  description = $2, discount_type = $3, discount_value = $4, min_order_amount = $5, start_date = $6, end_date = $7, 
+    usage_limit = $8, status = $9 WHERE id = $10`,
+          [
+            title,
+            description,
+            discount_type,
+            discount_value,
+            minimum_spent_price,
+            start_date,
+            end_date,
+            usage_limit,
+            status,
+            id,
+          ]
+        );
+        if (newData) {
+          console.log(newData);
+          res.status(200).json({
+            message: "Success",
+            data: newData,
+          });
+        } else {
+          res.status(500).json({
+            message: "Internal Server Error",
+          });
+        }
+      } else {
+        console.log("error", isValid);
+      }
+    } catch (error) {
+      console.log(error, "is error");
+      res.status(500).json({
+        message: "Inernal Server Error",
+      });
+    }
+  },
+  deletePromotion: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id;
+      pgPool.query("DELETE FROM promotions WHERE id = $1 ", [id]);
+      res.status(200).json({
+        message: "Promotion Deleted Successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  },
+  notificationList: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 10;
+      const offset = (page - 1) * limit;
+
+      const { rows: notifications } = await pgPool.query(
+        `SELECT * FROM notifications ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+
+      // Get total count for pagination
+      const { rows: countRows } = await pgPool.query(
+        `SELECT COUNT(*) FROM notifications`
+      );
+      const total = parseInt(countRows[0].count);
+      const totalPages = Math.ceil(total / limit);
+
+      res.status(200).json({
+        message: "Success",
+        data: notifications,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: total,
+          itemsPerPage: limit,
+        },
+      });
+    } catch (error) {
+      console.error("Error in notificationList:", error);
+      res.status(500).json({
+        message: "Internal Server Error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+  deleteNotification: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = req.params.id;
+      pgPool.query("DELETE FROM notifications WHERE id = $1 ", [id]);
+      res.status(200).json({
+        message: "Notification Deleted Successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Internal Server Error",
+      });
+    }
+  },
+  profileDetails: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const {
+        id: user_id,
+        role: user_role,
+        auth: user_auth,
+      } = (req as any).user;
+
+      const { rows: profile } = await pgPool.query(
+        `SELECT id, name, email, phone_one, phone_two, address_one, address_two, account_status, role, profile, created_at FROM users WHERE id = $1`,
+        [user_id]
+      );
+      if (profile) {
+        res.status(200).json({
+          message: "Success",
+          data: profile[0],
+        });
+      }
+    } catch (error) {
+      console.error("Error in notificationList:", error);
+      res.status(500).json({
+        message: "Internal Server Error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  },
+  updateProfile: async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log(req.body, "is heheheh body");
+      const {
+        id: user_id,
+        role: user_role,
+        auth: user_auth,
+      } = (req as any).user;
+      const { name, phone_one, phone_two, email, address_one, address_two } =
+        req.body;
+      const isValid = await profileUpdateValidation(user_id, req.body, res);
+      if (!isValid) {
+        return;
+      }
+
+      const fileName = req.file?.filename;
+      console.log(fileName, "is filename");
+      if (fileName) {
+        const prevData = await pgPool.query(
+          `SELECT profile , phone_one , phone_two FROM users WHERE id = $1`,
+          [user_id]
+        );
+        const prevProfile = prevData.rows[0].profile;
+
+        if (prevProfile) {
+          deleteImage(prevProfile);
+        }
+
+        await PhoneValiation(phone_one, phone_two, user_id, "stores");
+        console.log("after query");
+        await pgPool.query(
+          `UPDATE users SET
+        name = $1,
+        phone_one = $2,
+        phone_two = $3,
+        email = $4,
+        address_one = $5,
+        address_two = $6,
+        profile = $7
+        WHERE id = $8
+      `,
+          [
+            name,
+            phone_one,
+            phone_two,
+            email,
+            address_one,
+            address_two,
+            fileName,
+            user_id,
+          ]
+        );
+      } else {
+        PhoneValiation(phone_one, phone_two, user_id, "stores");
+        await pgPool.query(
+          `UPDATE users SET
+        name = $1,
+        phone_one = $2,
+        phone_two = $3,
+        email = $4,
+        address_one = $5,
+        address_two = $6
+        WHERE id = $7
+      `,
+          [name, phone_one, phone_two, email, address_one, address_two, user_id]
+        );
+      }
+
+      res.status(200).json({
+        message: "true",
+      });
+    } catch (error) {
+      console.error("Error in notificationList:", error);
+      res.status(500).json({
+        message: "Internal Server Error",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   },

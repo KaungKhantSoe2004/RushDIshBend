@@ -1,4 +1,4 @@
-const createActivityTable = `CREATE TABLE IF NOT EXISTS activities (
+const createNotesTable = `CREATE TABLE IF NOT EXISTS notes (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL,
   type VARCHAR(100),
@@ -7,4 +7,4 @@ const createActivityTable = `CREATE TABLE IF NOT EXISTS activities (
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) `;
-export default createActivityTable;
+export default createNotesTable;

@@ -40,7 +40,7 @@ const seedAdmin = async (): Promise<void> => {
       password: "hhk2004",
       account_status: "active",
       login_code: "2343434",
-      role: "user",
+      role: "admin",
     },
     {
       name: "Vivian",
@@ -58,7 +58,7 @@ const seedAdmin = async (): Promise<void> => {
 
   try {
     for (const user of users) {
-      const hashedPassword = hashPassword(user.password);
+      const hashedPassword = await hashPassword(user.password);
       const existing = await pgPool.query(
         "SELECT * FROM users WHERE email = $1",
         [user.email]
@@ -66,7 +66,9 @@ const seedAdmin = async (): Promise<void> => {
 
       if (existing.rows.length === 0) {
         await pgPool.query(
-          `INSERT INTO users (name, phone_one, phone_two, email, address_one, address_two, account_status, points, login_code, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8 , $9, $10, $11, $12)`,
+          `INSERT INTO users (name, phone_one, phone_two, email, address_one, address_two,
+           account_status, points, login_code, password_hash, role, is_active) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8 , $9, $10, $11, $12)`,
           [
             user.name,
             user.phone_one,

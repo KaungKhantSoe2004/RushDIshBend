@@ -42,8 +42,8 @@ const seedStores = async () => {
     );
 
     if (existing.rows.length === 0) {
-      const hashedPassword = hashPassword(store.password);
-
+      const hashedPassword = await hashPassword(store.password);
+      console.log(hashedPassword, "is hashedPassword");
       await pgPool.query(
         `INSERT INTO stores (
           name, phone_one, phone_two, email, address_one, address_two,

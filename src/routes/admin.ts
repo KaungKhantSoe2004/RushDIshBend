@@ -28,6 +28,13 @@ AdminRouter.get(
 AdminRouter.get("/me", verifyToken, async (req: Request, res: Response) => {
   await AdminController.me(req, res);
 });
+AdminRouter.post(
+  "/storeUpdatePassword",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    await AdminController.storeUpdatePassword(req, res);
+  }
+);
 AdminRouter.get("/logout", verifyToken, async (req: Request, res: Response) => {
   await AdminController.logout(req, res);
 });
@@ -108,6 +115,13 @@ AdminRouter.get(
   }
 );
 AdminRouter.get(
+  "/eachOrder/:id",
+  verifyToken,
+  async (req: Request, res: Response) => {
+    AdminController.eachOrder(req, res);
+  }
+);
+AdminRouter.get(
   "/userList",
   verifyToken,
   async (req: Request, res: Response) => {
@@ -125,11 +139,63 @@ AdminRouter.post(
 AdminRouter.post(
   "/updateUser",
   verifyToken,
+  uploadSingle("profile"),
   async (req: Request, res: Response) => {
-    AdminController.updateUser;
+    AdminController.updateUser(req, res);
   }
 );
 AdminRouter.get("/eachUser/:id", verifyToken, (req: Request, res: Response) => {
   AdminController.eachUser(req, res);
 });
+AdminRouter.get("/promotions", verifyToken, (req: Request, res: Response) => {
+  AdminController.promotions(req, res);
+});
+AdminRouter.post(
+  "/addPromotion",
+  verifyToken,
+  uploadSingle("profile"),
+  (req: Request, res: Response) => {
+    AdminController.addPromotion(req, res);
+  }
+);
+AdminRouter.post(
+  "/updatePromotion",
+  verifyToken,
+  // uploadSingle("profile"),
+  (req: Request, res: Response) => {
+    AdminController.updatePromotion(req, res);
+  }
+);
+AdminRouter.delete(
+  "/deletePromotion/:id",
+  verifyToken,
+  (req: Request, res: Response) => {
+    AdminController.deletePromotion(req, res);
+  }
+);
+AdminRouter.get(
+  "/notificationList",
+  verifyToken,
+  (req: Request, res: Response) => {
+    AdminController.notificationList(req, res);
+  }
+);
+AdminRouter.delete(
+  "/deleteNotification/:id",
+  verifyToken,
+  (req: Request, res: Response) => {
+    AdminController.deleteNotification(req, res);
+  }
+);
+AdminRouter.get("/profile", verifyToken, (req: Request, res: Response) => {
+  AdminController.profileDetails(req, res);
+});
+AdminRouter.post(
+  "/updateProfile",
+  verifyToken,
+  uploadSingle("profile"),
+  (req, res) => {
+    AdminController.updateProfile(req, res);
+  }
+);
 export default AdminRouter;
