@@ -11,6 +11,7 @@ import CreateReportTable from "./sql/createReports";
 import CreateStoresTable from "./sql/createStores";
 import CreateUsersTable from "./sql/createUsers";
 import CreateMenuTable from "./sql/createMenu";
+import CreateMenuCategoryTable from "./sql/createMenuCategory";
 const runMigrations = async (): Promise<void> => {
   try {
     await pgPool.query(CreateUsersTable);
@@ -48,6 +49,9 @@ const runMigrations = async (): Promise<void> => {
 
     await pgPool.query(CreateMenuTable);
     console.log("Menu Table Created Successfully");
+
+    await pgPool.query(CreateMenuCategoryTable);
+    console.log("Menu Category Table Created Successfully");
   } catch (err: any) {
     console.log(err, "is error");
   }

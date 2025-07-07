@@ -9,12 +9,15 @@ total_amount DECIMAL(13,2) NOT NULL CHECK (total_amount > 0),
 pickup_time TIMESTAMP,
 is_paid BOOLEAN DEFAULT FALSE,
 address VARCHAR(260) NOT NULL,
+order_type VARCHAR(100) DEFAULT 'delivery' CHECK( order_type in ('pickup', 'delivery')),
 instuctions VARCHAR(1000) NOT NULL,
 customer_pickup_time TIMESTAMP,
 promotion_id INTEGER DEFAULT NULL,
-profit DECIMAL(13,2) DEFAULT 500 CHECK (profit >= 0),
+deli_profit DECIMAL(13,2) DEFAULT 1000 CHECK (deli_profit >= 0),
+store_profit DECIMAL(13,2) DEFAULT 500 CHECK (store_profit >= 0),
+app_profit DECIMAL(13,2) DEFAULT 1000 CHECK (app_profit >= 0),
 status VARCHAR(30) DEFAULT 'pending'  CHECK (
-  status IN ('pending', 'completed', 'cancelled', 'in_progress', 'on_the_way', 'delivered', 'returned')
+  status IN ('delivered', 'pending', 'ready', 'cancelled', 'accepted', 'on the way', 'user denied')
 ),
 FOREIGN KEY (delivery_id) REFERENCES delivery_agents(id),
 FOREIGN KEY (user_id) REFERENCES users(id),

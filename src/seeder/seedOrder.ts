@@ -1,80 +1,132 @@
 import pgPool from "../db";
 
+const DELIVERY_FEE = 2500;
+
+const getRandomDateWithin7Days = () => {
+  const now = new Date();
+  const daysAgo = Math.floor(Math.random() * 7);
+  now.setDate(now.getDate() - daysAgo);
+  return now;
+};
+
+const getRandomItems = (count: number = 2) => {
+  const itemCatalog = [
+    { name: "Burger", price: 3000 },
+    { name: "Pizza", price: 5000 },
+    { name: "Milk Tea", price: 1500 },
+    { name: "Fries", price: 2000 },
+    { name: "Coffee", price: 2500 },
+  ];
+
+  const items = [];
+  for (let i = 0; i < count; i++) {
+    const item = itemCatalog[Math.floor(Math.random() * itemCatalog.length)];
+    const quantity = Math.floor(Math.random() * 3) + 1;
+
+    items.push({
+      name: item.name,
+      image:
+        "https://th.bing.com/th/id/OIP.xEGSC68jWmo76beXjrvP4wHaHa?w=172&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+      notes: "Hello Bro",
+      price: item.price,
+      quantity,
+    });
+  }
+
+  return items;
+};
+
+const calculateTotalAmount = (items: any[]): number => {
+  const itemsTotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  return DELIVERY_FEE + itemsTotal;
+};
+
 const seedOrders = async () => {
   try {
-    // Fetch IDs for users, stores, delivery agents, promotions
-    const users: Array<{ id: number }> | any = await pgPool.query(
-      "SELECT id FROM users LIMIT 3"
-    );
-    const stores: Array<{ id: number }> | any = await pgPool.query(
-      "SELECT id FROM stores LIMIT 3"
-    );
-    const agents: Array<{ id: number }> | any = await pgPool.query(
+    const users: any = await pgPool.query("SELECT id FROM users LIMIT 3");
+    const stores: any = await pgPool.query("SELECT id FROM stores LIMIT 3");
+    const agents: any = await pgPool.query(
       "SELECT id FROM delivery_agents LIMIT 3"
     );
-    const promotions: Array<{ id: number }> | any = await pgPool.query(
+    const promotions: any = await pgPool.query(
       "SELECT id FROM promotions LIMIT 3"
     );
-    
-    // If not enough data to seed orders, exit early
+
     if (users.rowCount < 3 || stores.rowCount < 3 || agents.rowCount < 3) {
       console.error("Not enough users, stores, or agents to seed orders.");
       return;
     }
 
-    const orders = [
-      {
-        store_id: stores.rows[0].id,
-        user_id: users.rows[0].id,
-        delivery_id: agents.rows[0].id,
-        items: JSON.stringify([{ name: "Burger", quantity: 2 }]),
-        item_count: 2,
-        total_amount: 15000.0,
+    const orders: any[] = [];
+
+    // Seed 3 sample orders
+    for (let i = 0; i < 3; i++) {
+      const createdAt = getRandomDateWithin7Days();
+      const items = getRandomItems(Math.floor(Math.random() * 3) + 2); // 2–4 items
+      const totalAmount = calculateTotalAmount(items);
+      const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+      orders.push({
+        store_id: "1",
+        user_id: users.rows[i].id,
+        delivery_id: agents.rows[i].id,
+        items: JSON.stringify(items),
+        item_count: itemCount,
+        total_amount: totalAmount,
         pickup_time: new Date(),
-        is_paid: true,
-        address: "No. 1, Myay Ni Gone, Yangon",
-        instuctions: "Call when arrived",
+        is_paid: i % 2 === 0,
+        address:
+          i === 0
+            ? "No. 1, Myay Ni Gone, Yangon"
+            : i === 1
+              ? "45th Street, Mandalay"
+              : "Nay Pyi Taw Zone 1",
+        instuctions:
+          i === 0
+            ? "Call when arrived"
+            : i === 1
+              ? "Ring the doorbell"
+              : "Leave at gate",
         customer_pickup_time: new Date(),
-        promotion_id: promotions.rows[0]?.id || null,
-        status: "pending",
-      },
-      {
-        store_id: stores.rows[1].id,
-        user_id: users.rows[1].id,
-        delivery_id: agents.rows[1].id,
-        items: JSON.stringify([{ name: "Pizza", quantity: 1 }]),
-        item_count: 1,
-        total_amount: 18000.0,
-        pickup_time: new Date(),
-        is_paid: false,
-        address: "45th Street, Mandalay",
-        instuctions: "Ring the doorbell",
-        customer_pickup_time: new Date(),
-        promotion_id: promotions.rows[1]?.id || null,
-        status: "in_progress",
-      },
-      {
-        store_id: stores.rows[2].id,
-        user_id: users.rows[2].id,
-        delivery_id: agents.rows[2].id,
-        items: JSON.stringify([{ name: "Milk Tea", quantity: 3 }]),
-        item_count: 3,
-        total_amount: 9000.0,
-        pickup_time: new Date(),
-        is_paid: true,
-        address: "Nay Pyi Taw Zone 1",
-        instuctions: "Leave at gate",
-        customer_pickup_time: new Date(),
-        promotion_id: promotions.rows[2]?.id || null,
-        status: "delivered",
-      },
-    ];
+        promotion_id: promotions.rows[i]?.id || null,
+        status: ["pending", "pending", "delivered"][i],
+        created_at: createdAt,
+      });
+    }
+
+    // Add 20 more orders for store_id = 1
+    for (let i = 0; i < 20; i++) {
+      const createdAt = getRandomDateWithin7Days();
+      const items = getRandomItems(Math.floor(Math.random() * 3) + 2);
+      const totalAmount = calculateTotalAmount(items);
+      const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+      orders.push({
+        store_id: 1,
+        user_id: users.rows[i % users.rowCount].id,
+        delivery_id: agents.rows[i % agents.rowCount].id,
+        items: JSON.stringify(items),
+        item_count: itemCount,
+        total_amount: totalAmount,
+        pickup_time: createdAt,
+        is_paid: i % 2 === 0,
+        address: `Street ${i + 10}, City`,
+        instuctions: "Handle with care",
+        customer_pickup_time: createdAt,
+        promotion_id: promotions.rows[i % promotions.rowCount]?.id || null,
+        status: ["pending", "ready", "delivered"][i % 3],
+        created_at: createdAt,
+      });
+    }
 
     for (const order of orders) {
       await pgPool.query(
         `INSERT INTO orders
-        (store_id, user_id, delivery_id, items, item_count, total_amount, pickup_time, is_paid, address, instuctions, customer_pickup_time, promotion_id, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        (store_id, user_id, delivery_id, items, item_count, total_amount, pickup_time, is_paid, address, instuctions, customer_pickup_time, promotion_id, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
         [
           order.store_id,
           order.user_id,
@@ -89,6 +141,7 @@ const seedOrders = async () => {
           order.customer_pickup_time,
           order.promotion_id,
           order.status,
+          order.created_at,
         ]
       );
       console.log(`✅ Order for user ${order.user_id} created.`);

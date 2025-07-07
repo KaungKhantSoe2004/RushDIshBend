@@ -14,6 +14,7 @@ import { validatePromotionInput } from "../helpers/validation/promotionValidatoi
 import { rmSync } from "fs";
 import { validateUpdatePromotionInput } from "../helpers/validation/updatePromotionValidation";
 import profileUpdateValidation from "../helpers/validation/profileUpdateValidation";
+import { error } from "console";
 const bcrypt = require("bcryptjs");
 const AdminController = {
   me: async (req: Request, res: Response): Promise<void> => {
@@ -355,6 +356,7 @@ const AdminController = {
         rating,
         status,
       } = req.body;
+      console.log(req.file, "is file name");
       const isValid = await storeUpdateValidation(req.body, res);
       if (!isValid) {
         // res.status(400).json({
